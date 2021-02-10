@@ -72,29 +72,73 @@ function editpackagejson {
   unset dummy
 }
 
+
 #pass "major", "minor" or "patch" as first argument
 #pass a commitmessage as second argument (optional! if not passed, the version number will be passed automatically)
-function gitup { 
+function gitcup { 
   if [ $# -eq 0 -o $# -eq 1 ]
   then
-    echo "Fault: No arguments supplied."
+    echo 'Fault: No arguments supplied.'
     echo 'pass "major", "minor", "patch" or "none" as first argument'
-    echo "pass a commitmessage as  second argument"
+    echo 'pass a commitmessage as  second argument'
     return 1
   fi
   if [ "$1" == "major" -o "$1" == "minor" -o "$1" == "patch" ]
   then
-    echo "project will be updated to version"
+    echo 'project will be updated to version'
     npm --no-git-tag-version version "$1"
   else
-    echo "version will not be updated"
+    echo 'version will not be updated'
   fi
-  if [ -n "$(git status -uno --porcelain)" ] #-n : string is not null (use -z for string is null); -uno : short for --untracked-files=no : untracked files will be ignored
+  if [ -n "$(git status -uno --porcelain)" ] #-n : check, if returned string is not null, which means, there are uncommitted changes (use -z to check if string is null, which means there are no pending changes); -uno : short for --untracked-files=no : untracked files will be ignored
   then
     git add .
     git commit -m "$2"
   else
-    echo "commit is clean"
+    echo 'commit is clean'
   fi
-  git push -u github "$(git rev-parse --abbrev-ref HEAD)"  # $(git rev...) gets the actual branch
+  git push -u github "$(git rev-parse --abbrev-ref HEAD)"  # $(git rev...) gets the actual branch   ## github = origin
+}
+
+
+#pass a branch name as argument
+#merges the branch to master, deletes the branch and updates github
+function gitmup { 
+  if [ $# -eq 0 ]
+  then
+    echo 'Fault: No argument supplied.'
+    echo 'pass the name of the branch to merge as first argument'
+    return 1
+  fi
+  actbranch=$(git rev-parse --abbrev-ref HEAD)
+  if git show-ref --quiet refs/heads/"$1"; # if branch exists
+  then
+    if [[ $actbranch == "$1" ]]
+    then
+      echo you can\'t merge here, since you\'re actually in the same branch
+    else
+      git checkout "$1"
+      if [ -z "$(git status -uno --porcelain)" ] # if there are no uncommitted changes
+      then
+        git checkout $actbranch
+        git merge --no-commit --no-ff "$1" 
+        if [ $? -eq 0 ] #if no errors
+        then
+          git merge --abort
+          git merge "$1"
+          git push -u github $actbranch
+          git push github --delete "$1"
+          git branch -d "$1"
+        else
+          git merge --abort
+        fi
+      else
+        echo Fault: there are uncommitted changes in branch "$1"
+        echo you can use >gitcup patch message   to commit these changes first
+        git status      
+      fi
+    fi
+  else
+    echo branch "$1" doesn\'t exist
+  fi
 }
