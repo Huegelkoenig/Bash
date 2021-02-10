@@ -102,7 +102,7 @@ function gitcup {
 
 
 #pass a branch name as argument
-#merges the branch to master, deletes the branch and updates github
+#merges the branch with the active branch, deletes the merged branch and updates github
 function gitmup { 
   if [ $# -eq 0 ]
   then
