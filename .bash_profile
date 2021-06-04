@@ -73,6 +73,7 @@ function editpackagejson {
 }
 
 
+#gitcup patch message  -> Commit all changes and UPload to github
 #pass "major", "minor" or "patch" as first argument
 #pass a commitmessage as second argument (optional! if not passed, the version number will be passed automatically)
 function gitcup { 
@@ -100,9 +101,9 @@ function gitcup {
   git push -u github "$(git rev-parse --abbrev-ref HEAD)"  # $(git rev...) gets the actual branch   ## github = origin
 }
 
-
+#gitmup branch -d  -> merges the given branch with the active branch, optionally deletes the merged branch and updates github
 #pass a branch name as argument
-#merges the branch with the active branch, deletes the merged branch and updates github
+#pass "-d" as optional second argument
 function gitmup { 
   if [ $# -eq 0 ]
   then
@@ -127,8 +128,11 @@ function gitmup {
           git merge --abort
           git merge "$1"
           git push -u github $actbranch
-          git push github --delete "$1"
-          git branch -d "$1"
+          if [ $# -eq 0 -a "$2" == "-d"]
+          then
+            git push github --delete "$1"
+            git branch -d "$1"
+          fi
         else
           git merge --abort
         fi
