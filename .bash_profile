@@ -39,7 +39,7 @@ function init-node-project {  #pass https://github.com/USER/REPO.git as first ar
 
   git add .
   git commit -m "Initial Commit"
-  git push -u github master
+  git push -u github main
 }
 
 function add-own-ignores {
@@ -101,9 +101,9 @@ function gitcup {
   git push -u github "$(git rev-parse --abbrev-ref HEAD)"  # $(git rev...) gets the actual branch   ## github = origin
 }
 
-#gitmup branch -d  -> merges the given branch with the active branch, optionally deletes the merged branch and updates github
+#gitmup branch d  -> merges the given branch with the active branch, optionally deletes the merged branch and updates github
 #pass a branch name as argument
-#pass "-d" as optional second argument
+#pass "d" as optional second argument
 function gitmup { 
   if [ $# -eq 0 ]
   then
@@ -128,7 +128,7 @@ function gitmup {
           git merge --abort
           git merge "$1"
           git push -u github $actbranch
-          if [ $# -eq 0 -a "$2" == "-d"]
+          if [ $# -eq 2 -a "$2" == "d" ]
           then
             git push github --delete "$1"
             git branch -d "$1"
@@ -145,4 +145,34 @@ function gitmup {
   else
     echo branch "$1" doesn\'t exist
   fi
+}
+
+
+
+#vsccup patch message  -> Commit all changes, UPload to github
+#pass "major", "minor" or "patch" as first argument
+#pass a commitmessage as second argument (optional! if not passed, the version number will be passed automatically)
+function vsccup { 
+  if [ $# -eq 0 -o $# -eq 1 ]
+  then
+    echo 'Fault: No arguments supplied.'
+    echo 'pass "major", "minor", "patch" or "none" as first argument'
+    echo 'pass a commitmessage as  second argument'
+    return 1
+  fi
+  if [ "$1" == "major" -o "$1" == "minor" -o "$1" == "patch" ]
+  then
+    echo 'project will be updated to version'
+    npm --no-git-tag-version version "$1"
+  else
+    echo 'version will not be updated'
+  fi
+  if [ -n "$(git status -uno --porcelain)" ] #-n : check, if returned string is not null, which means, there are uncommitted changes (use -z to check if string is null, which means there are no pending changes); -uno : short for --untracked-files=no : untracked files will be ignored
+  then
+    git add .
+    git commit -m "$2"
+  else
+    echo 'commit is clean'
+  fi
+  git push -u github "$(git rev-parse --abbrev-ref HEAD)"  # $(git rev...) gets the actual branch   ## github = origin
 }
